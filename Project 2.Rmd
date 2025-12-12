@@ -1,0 +1,147 @@
+---
+title: "Project 2"
+author: "Semele Hargis"
+date: "2024-11-26"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+#load all needed packages
+pacman :: p_load(
+  tidyverse,
+  gtsummary,
+  stringr,
+  dplyr,
+  gmodels,
+  NHANES
+)
+```
+
+```{r}
+#store the NHANES data set
+nhanes<-NHANES
+```
+
+```{r}
+#summary statistics of age
+summary(nhanes$Age)
+```
+
+```{r}
+#create and summarize a new variable for adult, if age is equal to or greater than 18
+nhanes_adult<-subset(nhanes, Age==18 | Age>18)
+summary(nhanes_adult$Age)
+```
+
+```{r}
+#create and summarize a variable of adults for the survey year 2011-12
+nhanesa<-subset(nhanes_adult, SurveyYr=="2011_12")
+summary(nhanesa$SurveyYr)
+```
+
+```{r}
+#create a subset of specfic columns from adult NHANES data
+nhanesb<-nhanesa %>%
+  select(ID, Age, TotChol, Gender, SleepTrouble, CompHrsDay, PhysActive)
+```
+
+```{r}
+#summarize adult physical activity- yes/no
+summary(nhanesb$PhysActive)
+```
+
+```{r}
+#check data
+str(nhanesb)
+```
+```{r}
+#summarize sleeptrouble data
+summary(nhanesb$SleepTrouble)
+```
+
+```{r}
+#summarize cholesterol data
+summary(nhanesb$TotChol)
+```
+
+```{r}
+#created a table for the nhanes dataset, removing ID and prepping data for statistical test, found mean and standard deviation between yes/no physical activity groups
+Table1<-nhanesb %>%
+  select (-ID) %>%
+  tbl_summary(by= PhysActive, statistic = c(Age, TotChol) ~ "{mean} ({sd})",
+              label = list(
+                TotChol ~ "Total HDL Cholesterol (mmol/L)",
+                SleepTrouble ~ "Reported Trouble Sleeping",
+                CompHrsDay ~ "Hours of Computer Time per Day"
+                
+                
+              ),
+              
+              missing_text = "Missing")
+Table1
+```
+
+```{r}
+#changed the header of above table
+modify_Table1 <- Table1 %>%
+  modify_header(label = "Reported Physical Activity")
+modify_Table1
+```
+```{r}
+#created two subsets for physically active adults Y/N
+summary(nhanesb$PhysActive)
+YPA<-filter(nhanesb, PhysActive=="Yes")
+NPA<-filter(nhanesb, PhysActive=="No")
+```
+```{r}
+#conducted a two-sided Welch sample test to determine if the difference of mean age between physically active and non-physically active adults was considered statistically significant. The low p-value indicates that the null hypothesis can be rejected and that the difference between means is considered statistically significant. 
+t.test(x = NPA$Age, y= YPA$Age, alternative = "two.sided", conf.level = 0.95)
+```
+```{r}
+#the previous test indicated a difference with the NPA mean being larger, so a one tail test was run. The non-physically active group was found to have a statistically significant greater mean age than the physically active group
+t.test(x = NPA$Age, y = YPA$Age, alternative = "greater", conf.level = 0.95)
+```
+```{r}
+#a two sided Welch sample test was run to test if the difference of total cholesterol between the physically active and non-physically active groups was statistically significant. The p-value of greater than 0.05 indicates that the difference was not considered statistically significant, failing to reject the null hypothesis.
+t.test(x = NPA$TotChol, y = YPA$TotChol, alternative = "two.sided", conf.level=0.95)
+```
+
+
+```{r}
+#new variable created of only unique ids and count
+inhanes<-unique(nhanes$ID)
+print("Number of unique IDs: ")
+length(inhanes)
+```
+
+```{r}
+#a crosstable was created to visualize data. The chi-squared test was run to see if there existed a relationship between physical activity and computer hours per day. The results indicate that there is a relationship between the two and the null hypothesis can be rejected. 
+CrossTable(nhanesb$CompHrsDay,nhanesb$PhysActive,chisq=TRUE)
+```
+```{r}
+#cross table created to visualize data
+CrossTable(nhanesb$PhysActive,nhanesb$Gender, chisq.test=FALSE)
+```
+```{r}
+#vectors were created of physically active males and females and total males and females. The proportion test used these vectors to determine if the proportion of females who were physically active and males who were physically active was statistically different. The high p-value indicates the difference was not statistically significant and the null hypothesis is not rejected. 
+yPhysActive<-c(998,1017)
+ntotal<-c(1856,1851)
+prop.test(yPhysActive, n=ntotal, correct = "FALSE", alternative="two.sided", conf.level = 0.95)
+```
+```{r}
+#create a cross table of physical activity and sleep trouble
+CrossTable(nhanesb$SleepTrouble, nhanesb$PhysActive, chisq.test=FALSE)
+```
+
+```{r}
+#another two proportion test was run, checking between the proportion of people who have sleep trouble and are physically active and those who do not have sleep trouble and are physically active to determine if the proportions are statistically different. The results indicate that there is no statistical difference and the null hypothesis is not rejected.
+ypa<-c(1478,537)
+ytotal<-c(2706,1001)
+prop.test(ypa, n=ytotal, correct="FALSE", alternative = "two.sided", conf.level = 0.95)
+```
+
+
